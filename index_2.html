@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Immobilien · Hochzoll</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root {
+    --bg: #F7F5F0; --surface: #FFFFFF; --border: #E2DDD6;
+    --text: #1A1814; --muted: #8A8480; --accent: #C8873A;
+    --green: #3A7D56; --green-light: #E8F4EE;
+    --red: #C04040; --red-light: #FAEAEA; --blue: #2E5FA3;
+    --warn: #E07820; --warn-light: #FFF3E0;
+    --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: var(--sans); color: var(--text); font-size: 13px; line-height: 1.5; }
+  .header { background: var(--text); color: white; padding: 16px 32px; display: flex; align-items: baseline; gap: 24px; border-bottom: 3px solid var(--accent); }
+  .header-title { font-family: var(--mono); font-size: 15px; font-weight: 500; letter-spacing: 0.04em; }
+  .header-sub { font-size: 12px; color: rgba(255,255,255,0.45); font-family: var(--mono); }
+  .header-date { margin-left: auto; font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.4); }
+  .nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; }
+  .nav-tab { padding: 12px 20px; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; letter-spacing: 0.02em; user-select: none; }
+  .nav-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .nav-tab:hover:not(.active) { color: var(--text); }
+  .main { padding: 24px 32px; max-width: 1500px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .kpi-row { display: grid; gap: 12px; margin-bottom: 24px; }
+  .kpi-row-6 { grid-template-columns: repeat(6, 1fr); }
+  .kpi-row-4 { grid-template-columns: repeat(4, 1fr); }
+  .kpi { background: var(--surface); border: 1px solid var(--border); padding: 14px 16px; border-radius: 4px; }
+  .kpi-label { font-size: 10px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .kpi-value { font-family: var(--mono); font-size: 22px; font-weight: 500; line-height: 1; }
+  .kpi-value.accent { color: var(--accent); } .kpi-value.green { color: var(--green); } .kpi-value.red { color: var(--red); } .kpi-value.warn { color: var(--warn); }
+  .kpi-sub { font-size: 10px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+  .kpi-delta { font-size: 10px; font-family: var(--mono); margin-top: 4px; }
+  .kpi-delta.up { color: var(--green); } .kpi-delta.down { color: var(--red); }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filter-chip { padding: 5px 12px; border-radius: 2px; border: 1px solid var(--border); background: var(--surface); font-size: 11px; font-family: var(--mono); color: var(--muted); cursor: pointer; user-select: none; }
+  .filter-chip.active { background: var(--text); color: white; border-color: var(--text); }
+  .filter-chip.highlight { background: var(--green-light); color: var(--green); border-color: var(--green); }
+  .filter-chip.highlight.active { background: var(--green); color: white; border-color: var(--green); }
+  .search-input { padding: 5px 12px; border: 1px solid var(--border); border-radius: 2px; font-size: 11px; font-family: var(--mono); background: var(--surface); color: var(--text); width: 200px; outline: none; }
+  .search-input:focus { border-color: var(--accent); }
+  .sort-select { padding: 5px 10px; border: 1px solid var(--border); border-radius: 2px; font-size: 11px; font-family: var(--mono); background: var(--surface); color: var(--muted); margin-left: auto; outline: none; cursor: pointer; }
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 24px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 900px; }
+  thead th { background: #F2EEE8; padding: 9px 12px; text-align: left; font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #FAF8F5; }
+  tbody tr.row-new { background: #F0FAF4; }
+  tbody tr.row-new:hover { background: #E8F6EE; }
+  tbody tr.row-warn { background: #FFFBF0; }
+  tbody tr.row-gone { opacity: 0.5; }
+  td { padding: 9px 12px; font-size: 12px; vertical-align: middle; }
+  td.mono { font-family: var(--mono); white-space: nowrap; }
+  .no-results { padding: 32px; text-align: center; font-family: var(--mono); color: var(--muted); font-size: 12px; }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 2px; font-size: 10px; font-family: var(--mono); font-weight: 500; white-space: nowrap; }
+  .badge-neu { background: var(--green-light); color: var(--green); }
+  .badge-aktiv { background: #EEF2FA; color: var(--blue); }
+  .badge-warn { background: var(--warn-light); color: var(--warn); }
+  .badge-weg { background: var(--red-light); color: var(--red); }
+  .badge-ka { background: #F0F0F0; color: #555; }
+  .badge-is24 { background: #E8F0FF; color: var(--blue); }
+  .badge-imw { background: #FFF0F0; color: #A03030; }
+  .badge-imn { background: #F0FFF0; color: #306030; }
+  .price-drop { font-size: 10px; font-family: var(--mono); color: var(--red); display: block; }
+  .rendite { font-family: var(--mono); font-size: 12px; font-weight: 500; }
+  .rendite.good { color: var(--green); } .rendite.mid { color: var(--accent); } .rendite.low { color: var(--muted); }
+  .streak-dots { display: flex; gap: 3px; align-items: center; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot-seen { background: var(--green); } .dot-miss { background: var(--border); } .dot-warn { background: var(--warn); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .chart-box { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 16px; }
+  .chart-title { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 16px; }
+  .chart-svg { width: 100%; height: 120px; overflow: visible; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .section-title { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+  a.inserat-link { color: var(--blue); text-decoration: none; }
+  a.inserat-link:hover { text-decoration: underline; }
+  .footer { border-top: 1px solid var(--border); padding: 12px 32px; font-family: var(--mono); font-size: 10px; color: var(--muted); display: flex; gap: 24px; flex-wrap: wrap; }
+  .empty-note { font-family: var(--mono); font-size: 11px; color: var(--muted); padding: 8px 0; }
+  .loading { padding: 48px; text-align: center; font-family: var(--mono); color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-title">IMMOBILIEN · HOCHZOLL</span>
+  <span class="header-sub">Marktbeobachtung 86163 + Friedberg-West</span>
+  <span class="header-date" id="header-date">Lädt…</span>
+</div>
+
+<div class="nav">
+  <div class="nav-tab active" data-tab="kauf">Kauf</div>
+  <div class="nav-tab" data-tab="miete">Miete</div>
+  <div class="nav-tab" data-tab="analyse">Analyse</div>
+</div>
+
+<div class="main">
+  <div class="tab-content active" id="tab-kauf">
+    <div class="kpi-row kpi-row-6" id="kpi-kauf"><div class="kpi"><div class="loading">Lädt…</div></div></div>
+    <div class="filter-row">
+      <div class="filter-chip active" data-filter="alle">Alle</div>
+      <div class="filter-chip highlight" data-filter="neu">Neu heute</div>
+      <div class="filter-chip" data-filter="DHH">DHH</div>
+      <div class="filter-chip" data-filter="EFH">EFH</div>
+      <div class="filter-chip" data-filter="Reihenhaus">Reihenhaus</div>
+      <div class="filter-chip" data-filter="Bungalow">Bungalow</div>
+      <div class="filter-chip" data-filter="warn">Streak-Warnung</div>
+      <input class="search-input" id="search-kauf" placeholder="Suchen…">
+      <select class="sort-select" id="sort-kauf">
+        <option value="erst_gesehen_desc">Erst gesehen ↓</option>
+        <option value="erst_gesehen_asc">Erst gesehen ↑</option>
+        <option value="preis_aktuell_asc">Preis ↑</option>
+        <option value="preis_aktuell_desc">Preis ↓</option>
+        <option value="eur_pro_m2_asc">€/m² ↑</option>
+        <option value="eur_pro_m2_desc">€/m² ↓</option>
+        <option value="bruttorendite_desc">Rendite ↓</option>
+        <option value="tage_online_desc">Tage online ↓</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Titel</th><th>Lage</th><th>Typ</th><th>m²</th><th>Zi</th><th>Bj</th><th>Preis</th><th>€/m²</th><th>Rendite</th><th>Quelle</th><th>Seit</th><th>Streak</th><th>Status</th></tr></thead>
+        <tbody id="tbody-kauf"><tr><td colspan="13" class="no-results">Lädt…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-miete">
+    <div class="kpi-row kpi-row-4" id="kpi-miete"></div>
+    <div class="filter-row">
+      <div class="filter-chip active" data-filter-miete="alle">Alle</div>
+      <div class="filter-chip highlight" data-filter-miete="neu">Neu heute</div>
+      <div class="filter-chip" data-filter-miete="aktiv">Nur aktive</div>
+      <input class="search-input" id="search-miete" placeholder="Suchen…">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Titel</th><th>Lage</th><th>m²</th><th>Zi</th><th>Bj</th><th>Miete/Mon</th><th>€/m²</th><th>Quelle</th><th>Seit</th><th>Status</th></tr></thead>
+        <tbody id="tbody-miete"><tr><td colspan="10" class="no-results">Lädt…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="empty-note">Verschwundene Inserate bleiben für Miet-Benchmark erhalten · Mietmarkt Hochzoll ist strukturell dünn</div>
+  </div>
+
+  <div class="tab-content" id="tab-analyse">
+    <div class="kpi-row kpi-row-4" id="kpi-analyse"></div>
+    <div class="two-col">
+      <div class="chart-box">
+        <div class="chart-title">€/m² Kauf · Verlauf (Median pro Run)</div>
+        <svg class="chart-svg" id="chart-verlauf" viewBox="0 0 460 120"></svg>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">Vermarktungsdauer · verschwundene Objekte (Tage)</div>
+        <svg class="chart-svg" id="chart-vmd" viewBox="0 0 460 120"></svg>
+      </div>
+    </div>
+    <div class="section-header"><span class="section-title">Preisänderungen · letzte 30 Tage</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Objekt</th><th>Preis vorher</th><th>Preis aktuell</th><th>Delta €</th><th>Delta %</th><th>Geändert am</th></tr></thead>
+        <tbody id="tbody-preise"><tr><td colspan="6" class="no-results">Lädt…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>Quellen: IS24 · Kleinanzeigen · immowelt · immonet</span>
+  <span>Gebiet: 86163 Hochzoll + Friedberg-West</span>
+  <span>Rendite = 12 × Miet-Median-€/m² × Wohnfl. ÷ Kaufpreis</span>
+  <span style="margin-left:auto" id="footer-run">–</span>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://cybqbwgrdxljmwgyxyaj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YnFid2dyZHhsam13Z3l4eWFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNjQ1NDEsImV4cCI6MjA5Njc0MDU0MX0.q799DD-9QzktR0IFWX8vrZVOnCShNLRTNyPi-TVi-_o';
+
+const H = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` };
+
+let inserate = [], runs = [], preisaenderungen = [];
+let kaufFilter = 'alle', kaufSearch = '', kaufSort = 'erst_gesehen_desc';
+let mieteFilter = 'alle', mieteSearch = '';
+let today = '';
+
+async function sb(table, params='') {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { headers: H });
+  return r.json();
+}
+
+async function loadAll() {
+  try {
+    [inserate, runs, preisaenderungen] = await Promise.all([
+      sb('inserate', 'order=erst_gesehen.desc'),
+      sb('runs', 'order=datum.desc&limit=60'),
+      sb('preisaenderungen', `datum=gte.${thirtyDaysAgo()}&order=datum.desc`)
+    ]);
+    today = runs.length ? runs[0].datum : new Date().toISOString().slice(0,10);
+    document.getElementById('header-date').textContent =
+      runs.length ? `Stand: ${today} · Run #${runs[0].run_count}` : 'Keine Daten';
+    document.getElementById('footer-run').textContent = `Letzter Run: ${today}`;
+    render();
+  } catch(e) {
+    document.getElementById('tbody-kauf').innerHTML =
+      `<tr><td colspan="13" class="no-results">Fehler beim Laden: ${e.message}</td></tr>`;
+  }
+}
+
+function thirtyDaysAgo() {
+  const d = new Date(); d.setDate(d.getDate() - 30);
+  return d.toISOString().slice(0,10);
+}
+
+function render() {
+  renderKaufKPIs(); renderKaufTable();
+  renderMieteKPIs(); renderMieteTable();
+  renderAnalyse();
+}
+
+// ── HELPERS ────────────────────────────────────────────────────
+function fmt(n) { return n != null ? Number(n).toLocaleString('de-DE') : '–'; }
+function fmtPct(n) { return n != null ? Number(n).toFixed(1) + '%' : '–'; }
+
+function portalBadge(p) {
+  const map = { 'IS24':'badge-is24','Kleinanzeigen':'badge-ka','immowelt':'badge-imw','immonet':'badge-imn' };
+  return `<span class="badge ${map[p]||'badge-ka'}">${p||'–'}</span>`;
+}
+
+function statusBadge(ins) {
+  if (ins.erst_gesehen === today) return '<span class="badge badge-neu">NEU</span>';
+  if (ins.status === 'Verschwunden') return '<span class="badge badge-weg">WEG</span>';
+  if (ins.streak_t >= 2) return `<span class="badge badge-warn">T=${ins.streak_t}</span>`;
+  return '<span class="badge badge-aktiv">AKTIV</span>';
+}
+
+function streakDots(t) {
+  const max = 7, seen = Math.max(0, max - t);
+  let h = '<div class="streak-dots">';
+  for (let i=0; i<Math.min(seen,max); i++) h += '<div class="dot dot-seen"></div>';
+  for (let i=0; i<Math.min(t,max); i++) h += `<div class="dot ${t>=2?'dot-warn':'dot-miss'}"></div>`;
+  return h + '</div>';
+}
+
+function renditeClass(r) {
+  if (r==null) return 'low';
+  return r >= 4 ? 'good' : r >= 2.5 ? 'mid' : 'low';
+}
+
+function rowClass(ins) {
+  if (ins.erst_gesehen === today) return 'row-new';
+  if (ins.streak_t >= 2) return 'row-warn';
+  if (ins.status === 'Verschwunden') return 'row-gone';
+  return '';
+}
+
+function median(arr) {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a,b)=>a-b);
+  const m = Math.floor(s.length/2);
+  return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
+}
+
+// ── KAUF ───────────────────────────────────────────────────────
+function renderKaufKPIs() {
+  const kauf = inserate.filter(i => i.art === 'Kauf');
+  const aktiv = kauf.filter(i => i.status === 'Aktiv');
+  const neuHeute = aktiv.filter(i => i.erst_gesehen === today).length;
+  const med = Math.round(median(aktiv.map(i => i.eur_pro_m2).filter(Boolean)));
+  const avgTage = aktiv.length ? Math.round(aktiv.reduce((s,i)=>s+(i.tage_online||0),0)/aktiv.length) : 0;
+  const snk = preisaenderungen.filter(p => p.delta < 0).length;
+  const avgR = aktiv.filter(i=>i.bruttorendite).length
+    ? (aktiv.filter(i=>i.bruttorendite).reduce((s,i)=>s+Number(i.bruttorendite),0)/aktiv.filter(i=>i.bruttorendite).length).toFixed(1)
+    : '–';
+  const warn = aktiv.filter(i => i.streak_t >= 2).length;
+
+  document.getElementById('kpi-kauf').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Aktiv Kauf</div><div class="kpi-value">${aktiv.length}</div><div class="kpi-delta up">▲ +${neuHeute} heute</div></div>
+    <div class="kpi"><div class="kpi-label">Median €/m²</div><div class="kpi-value accent">${fmt(med)}</div><div class="kpi-sub">Kauf · Hochzoll</div></div>
+    <div class="kpi"><div class="kpi-label">Ø Vermarktung</div><div class="kpi-value">${avgTage}d</div><div class="kpi-sub">aktive Inserate</div></div>
+    <div class="kpi"><div class="kpi-label">Preissenkungen</div><div class="kpi-value red">${snk}</div><div class="kpi-sub">letzte 30 Tage</div></div>
+    <div class="kpi"><div class="kpi-label">Ø Bruttorendite</div><div class="kpi-value green">${avgR}%</div><div class="kpi-sub">vs. Miet-Median</div></div>
+    <div class="kpi"><div class="kpi-label">Streak-Warnung</div><div class="kpi-value warn">${warn}</div><div class="kpi-sub">T≥2, nächster Run</div></div>
+  `;
+}
+
+function getKaufInserate() {
+  let list = inserate.filter(i => i.art === 'Kauf');
+  if (kaufFilter === 'neu') list = list.filter(i => i.erst_gesehen === today);
+  else if (kaufFilter === 'warn') list = list.filter(i => i.streak_t >= 2);
+  else if (kaufFilter !== 'alle') list = list.filter(i => i.typ === kaufFilter);
+  if (kaufSearch) {
+    const q = kaufSearch.toLowerCase();
+    list = list.filter(i => (i.titel||'').toLowerCase().includes(q) || (i.lage||'').toLowerCase().includes(q));
+  }
+  const key = kaufSort.replace(/_asc$|_desc$/,'');
+  const dir = kaufSort.endsWith('_asc') ? 1 : -1;
+  list.sort((a,b) => { const av=a[key]??'', bv=b[key]??''; return av<bv?-dir:av>bv?dir:0; });
+  return list;
+}
+
+function renderKaufTable() {
+  const list = getKaufInserate();
+  if (!list.length) { document.getElementById('tbody-kauf').innerHTML='<tr><td colspan="13" class="no-results">Keine Inserate</td></tr>'; return; }
+  document.getElementById('tbody-kauf').innerHTML = list.map(ins => {
+    const drop = ins.preis_erst && ins.preis_aktuell < ins.preis_erst
+      ? `<span class="price-drop">↓ war ${fmt(ins.preis_erst)} €</span>` : '';
+    const rendite = ins.bruttorendite != null
+      ? `<span class="rendite ${renditeClass(ins.bruttorendite)}">${fmtPct(ins.bruttorendite)}</span>` : '–';
+    return `<tr class="${rowClass(ins)}">
+      <td><a class="inserat-link" href="${ins.link||'#'}" target="_blank">${ins.titel||'–'}</a></td>
+      <td>${ins.lage||'–'}</td><td>${ins.typ||'–'}</td>
+      <td class="mono">${ins.wohnflaeche||'–'}</td><td class="mono">${ins.zimmer||'–'}</td>
+      <td class="mono">${ins.baujahr||'–'}</td>
+      <td class="mono">${fmt(ins.preis_aktuell)} €${drop}</td>
+      <td class="mono">${fmt(ins.eur_pro_m2)}</td>
+      <td>${rendite}</td>
+      <td>${portalBadge(ins.portal)}</td>
+      <td class="mono">${ins.erst_gesehen||'–'}</td>
+      <td>${streakDots(ins.streak_t||0)}</td>
+      <td>${statusBadge(ins)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── MIETE ──────────────────────────────────────────────────────
+function renderMieteKPIs() {
+  const miete = inserate.filter(i => i.art === 'Miete');
+  const aktiv = miete.filter(i => i.status === 'Aktiv');
+  const med = miete.filter(i=>i.eur_pro_m2).length
+    ? median(miete.map(i=>Number(i.eur_pro_m2)).filter(Boolean)).toFixed(2) : '–';
+  const avgTage = miete.filter(i=>i.status==='Verschwunden'&&i.tage_online).length
+    ? Math.round(miete.filter(i=>i.status==='Verschwunden').reduce((s,i)=>s+(i.tage_online||0),0)/miete.filter(i=>i.status==='Verschwunden').length) : '–';
+
+  document.getElementById('kpi-miete').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Aktiv Miete</div><div class="kpi-value">${aktiv.length}</div><div class="kpi-sub">Hochzoll + FW</div></div>
+    <div class="kpi"><div class="kpi-label">Median €/m² Miete</div><div class="kpi-value accent">${med}</div><div class="kpi-sub">historisch · ${miete.length} Objekte</div></div>
+    <div class="kpi"><div class="kpi-label">Ø Mietdauer online</div><div class="kpi-value">${avgTage}d</div><div class="kpi-sub">bis Verschwinden</div></div>
+    <div class="kpi"><div class="kpi-label">Datenbasis</div><div class="kpi-value green">${miete.length}</div><div class="kpi-sub">Inserate gesamt</div></div>
+  `;
+}
+
+function renderMieteTable() {
+  let list = inserate.filter(i => i.art === 'Miete');
+  if (mieteFilter === 'neu') list = list.filter(i => i.erst_gesehen === today);
+  else if (mieteFilter === 'aktiv') list = list.filter(i => i.status === 'Aktiv');
+  if (mieteSearch) { const q=mieteSearch.toLowerCase(); list=list.filter(i=>(i.titel||'').toLowerCase().includes(q)||(i.lage||'').toLowerCase().includes(q)); }
+  if (!list.length) { document.getElementById('tbody-miete').innerHTML='<tr><td colspan="10" class="no-results">Keine Inserate</td></tr>'; return; }
+  document.getElementById('tbody-miete').innerHTML = list.map(ins => `
+    <tr class="${rowClass(ins)}">
+      <td><a class="inserat-link" href="${ins.link||'#'}" target="_blank">${ins.titel||'–'}</a></td>
+      <td>${ins.lage||'–'}</td><td class="mono">${ins.wohnflaeche||'–'}</td>
+      <td class="mono">${ins.zimmer||'–'}</td><td class="mono">${ins.baujahr||'–'}</td>
+      <td class="mono">${fmt(ins.preis_aktuell)} €</td>
+      <td class="mono">${ins.eur_pro_m2!=null?Number(ins.eur_pro_m2).toFixed(2):'–'}</td>
+      <td>${portalBadge(ins.portal)}</td>
+      <td class="mono">${ins.erst_gesehen||'–'}</td>
+      <td>${statusBadge(ins)}</td>
+    </tr>`).join('');
+}
+
+// ── ANALYSE ────────────────────────────────────────────────────
+function renderAnalyse() {
+  const kauf = inserate.filter(i => i.art==='Kauf' && i.status==='Aktiv');
+  const miete = inserate.filter(i => i.art==='Miete');
+  const medKauf = Math.round(median(kauf.map(i=>i.eur_pro_m2).filter(Boolean)));
+  const medMiete = miete.filter(i=>i.eur_pro_m2).length
+    ? median(miete.map(i=>Number(i.eur_pro_m2)).filter(Boolean)).toFixed(2) : '–';
+  const avgR = kauf.filter(i=>i.bruttorendite).length
+    ? (kauf.filter(i=>i.bruttorendite).reduce((s,i)=>s+Number(i.bruttorendite),0)/kauf.filter(i=>i.bruttorendite).length).toFixed(1) : '–';
+  const vmd = inserate.filter(i=>i.status==='Verschwunden'&&i.tage_online);
+  const avgVmd = vmd.length ? Math.round(vmd.reduce((s,i)=>s+(i.tage_online||0),0)/vmd.length) : '–';
+
+  document.getElementById('kpi-analyse').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Median Kauf €/m²</div><div class="kpi-value accent">${fmt(medKauf)}</div></div>
+    <div class="kpi"><div class="kpi-label">Median Miete €/m²</div><div class="kpi-value">${medMiete}</div><div class="kpi-sub">${miete.length} Datenpunkte</div></div>
+    <div class="kpi"><div class="kpi-label">Bruttorendite Median</div><div class="kpi-value green">${avgR}%</div></div>
+    <div class="kpi"><div class="kpi-label">Ø Vermarktung</div><div class="kpi-value">${avgVmd}d</div><div class="kpi-sub">verschwundene Objekte</div></div>
+  `;
+
+  renderVerlaufChart();
+  renderVMDChart();
+  renderPreisaenderungen();
+}
+
+function renderVerlaufChart() {
+  const data = [...runs].reverse().filter(r=>r.median_eur_pro_m2);
+  const svg = document.getElementById('chart-verlauf');
+  if (data.length < 2) { svg.innerHTML='<text x="230" y="60" text-anchor="middle" font-size="11" fill="#8A8480" font-family="monospace">Noch keine Verlaufsdaten</text>'; return; }
+  const W=460,H=100,PAD={t:10,r:10,b:25,l:50};
+  const vals=data.map(d=>Number(d.median_eur_pro_m2));
+  const minV=Math.min(...vals)*0.99, maxV=Math.max(...vals)*1.01;
+  const x=i=>PAD.l+(i/(data.length-1))*(W-PAD.l-PAD.r);
+  const y=v=>PAD.t+(1-(v-minV)/(maxV-minV))*(H-PAD.t-PAD.b);
+  const pts=data.map((d,i)=>`${x(i)},${y(Number(d.median_eur_pro_m2))}`).join(' ');
+  const aEnd=`${x(data.length-1)},${H-PAD.b} ${x(0)},${H-PAD.b}`;
+  svg.innerHTML=`
+    <defs><linearGradient id="gv" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C8873A" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#C8873A" stop-opacity="0"/>
+    </linearGradient></defs>
+    <line x1="${PAD.l}" y1="${H-PAD.b}" x2="${W-PAD.r}" y2="${H-PAD.b}" stroke="#E2DDD6" stroke-width="0.5"/>
+    <line x1="${PAD.l}" y1="${PAD.t+(H-PAD.t-PAD.b)/2}" x2="${W-PAD.r}" y2="${PAD.t+(H-PAD.t-PAD.b)/2}" stroke="#E2DDD6" stroke-width="0.5" stroke-dasharray="3,3"/>
+    <text x="${PAD.l-4}" y="${PAD.t+4}" font-size="9" fill="#8A8480" font-family="monospace" text-anchor="end">${Math.round(maxV)}</text>
+    <text x="${PAD.l-4}" y="${H-PAD.b+4}" font-size="9" fill="#8A8480" font-family="monospace" text-anchor="end">${Math.round(minV)}</text>
+    <polygon points="${pts} ${aEnd}" fill="url(#gv)"/>
+    <polyline points="${pts}" fill="none" stroke="#C8873A" stroke-width="2" stroke-linejoin="round"/>
+    ${data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(Number(d.median_eur_pro_m2))}" r="3" fill="#C8873A"/>
+      ${i===0||i===data.length-1?`<text x="${x(i)}" y="${H-PAD.b+14}" font-size="8" fill="#8A8480" font-family="monospace" text-anchor="middle">${d.datum.slice(5)}</text>`:''}`).join('')}`;
+}
+
+function renderVMDChart() {
+  const data = inserate.filter(i=>i.status==='Verschwunden'&&i.tage_online).slice(-10);
+  const svg = document.getElementById('chart-vmd');
+  if (!data.length) { svg.innerHTML='<text x="230" y="60" text-anchor="middle" font-size="11" fill="#8A8480" font-family="monospace">Noch keine verschwundenen Objekte</text>'; return; }
+  const W=460,H=100,PAD={t:10,r:10,b:25,l:10};
+  const maxV=Math.max(...data.map(d=>d.tage_online));
+  const bw=(W-PAD.l-PAD.r)/data.length, gap=4;
+  svg.innerHTML=data.map((d,i)=>{
+    const bh=((d.tage_online/maxV)*(H-PAD.t-PAD.b));
+    const bx=PAD.l+i*bw+gap, by=H-PAD.b-bh;
+    const color=d.tage_online===maxV?'#C8873A':d.tage_online===Math.min(...data.map(x=>x.tage_online))?'#3A7D56':'#E2DDD6';
+    return `<rect x="${bx}" y="${by}" width="${bw-gap*2}" height="${bh}" fill="${color}" rx="1" opacity="0.85"/>
+      <text x="${bx+(bw-gap*2)/2}" y="${H-PAD.b+12}" font-size="8" fill="#8A8480" font-family="monospace" text-anchor="middle">${d.tage_online}d</text>`;
+  }).join('');
+}
+
+function renderPreisaenderungen() {
+  if (!preisaenderungen.length) {
+    document.getElementById('tbody-preise').innerHTML='<tr><td colspan="6" class="no-results">Keine Preisänderungen in den letzten 30 Tagen</td></tr>';
+    return;
+  }
+  document.getElementById('tbody-preise').innerHTML = preisaenderungen.map(p => {
+    const ins = inserate.find(i=>i.id===p.inserat_id);
+    return `<tr>
+      <td>${ins?ins.titel:p.inserat_id}</td>
+      <td class="mono">${fmt(p.von)} €</td><td class="mono">${fmt(p.auf)} €</td>
+      <td class="mono" style="color:${p.delta<0?'var(--green)':'var(--red)'}">${p.delta<0?'−':'+'}${fmt(Math.abs(p.delta))} €</td>
+      <td class="mono" style="color:${p.delta_pct<0?'var(--green)':'var(--red)'}">${Number(p.delta_pct).toFixed(2)}%</td>
+      <td class="mono">${p.datum}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── EVENTS ─────────────────────────────────────────────────────
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+document.querySelectorAll('[data-filter]').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('[data-filter]').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    kaufFilter = chip.dataset.filter;
+    renderKaufTable();
+  });
+});
+
+document.querySelectorAll('[data-filter-miete]').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('[data-filter-miete]').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    mieteFilter = chip.dataset.filterMiete;
+    renderMieteTable();
+  });
+});
+
+document.getElementById('search-kauf').addEventListener('input', e => { kaufSearch=e.target.value; renderKaufTable(); });
+document.getElementById('search-miete').addEventListener('input', e => { mieteSearch=e.target.value; renderMieteTable(); });
+document.getElementById('sort-kauf').addEventListener('change', e => { kaufSort=e.target.value; renderKaufTable(); });
+
+loadAll();
+</script>
+</body>
+</html>
